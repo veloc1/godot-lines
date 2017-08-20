@@ -5,5 +5,7 @@
 [node name="Node2D" type="Node2D"]
 
 script/script = ExtResource( 1 )
+RANGE = 50
+POINTS = 30
 
 

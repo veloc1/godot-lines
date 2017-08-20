@@ -1,10 +1,6 @@
 tool
 extends Node2D
 
-# class member variables go here, for example:
-# var a = 2
-# var b = "textvar"
-
 var points = []
 var neighbors = []
 var velocities = []
@@ -13,19 +9,20 @@ var is_pressed = false
 
 var add_timer = null
 
-const RANGE = 50
-const POINTS = 30
+export(int, 300) var RANGE = 50
+export(int, 100) var POINTS = 30 setget rebuild
 
 const INITIAL_VELOCITY = 0.3
 const VELOCITY_LIMIT = 0.2
 const VELOCITY_CHANGE = 0.005
 
 func _ready():
-	# Called every time the node is added to the scene.
-	# Initialization here
 	set_fixed_process(true)
 	set_process_input(true)
 	
+	if add_timer != null: # this check here becouse we call _ready from rebuild method
+		remove_child(add_timer)
+		
 	add_timer = Timer.new()
 	add_timer.set_timer_process_mode(Timer.TIMER_PROCESS_FIXED)
 	add_child(add_timer)
@@ -35,13 +32,24 @@ func _ready():
 		var y = rand_range(0, get_viewport_rect().size.y)
 		add_point(x, y)
 
+func rebuild(new_points):
+	POINTS = new_points
+	points.clear()
+	neighbors.clear()
+	velocities.clear()
+	_ready()
+
 func _fixed_process(delta):
 	for i in range(points.size()):
+		# apply velocity
 		points[i].x += velocities[i].x
 		points[i].y += velocities[i].y
+		
+		# change velocity by small random value
 		velocities[i].x += rand_range(-VELOCITY_CHANGE, VELOCITY_CHANGE)
 		velocities[i].y += rand_range(-VELOCITY_CHANGE, VELOCITY_CHANGE)
 		
+		# if point is near to edge, then reverse velocity
 		if points[i].x > get_viewport_rect().size.x:
 			points[i].x = get_viewport_rect().size.x
 			velocities[i].x = -velocities[i].x
@@ -55,6 +63,7 @@ func _fixed_process(delta):
 			points[i].y = 0
 			velocities[i].y = -velocities[i].y
 		
+		# if point is near to edge, then translate point to opposite edge
 		#if points[i].x > get_viewport_rect().size.x:
 		#	points[i].x = 0
 		#if points[i].x < 0:
@@ -63,7 +72,8 @@ func _fixed_process(delta):
 		#	points[i].y = 0
 		#if points[i].y < 0:
 		#	points[i].y = get_viewport_rect().size.y
-			
+		
+		# limit velocity
 		if velocities[i].x > VELOCITY_LIMIT:
 			velocities[i].x = VELOCITY_LIMIT
 		if velocities[i].x < -VELOCITY_LIMIT:
@@ -72,12 +82,14 @@ func _fixed_process(delta):
 			velocities[i].y = VELOCITY_LIMIT
 		if velocities[i].y < -VELOCITY_LIMIT:
 			velocities[i].y = -VELOCITY_LIMIT
+	
+	# recalculate neighbors
 	for i in range(points.size()):
 		neighbors[i].clear()
 		for j in range(i, points.size()):
 			var distance = points[i].distance_to(points[j])
 			if distance < RANGE:
-				neighbors[i].append(Vector2(j, 1 - distance / RANGE))
+				neighbors[i].append(Vector2(j, 1 - distance / RANGE)) # x - index of neghbor, y - opacity of the line
 	update()
 
 func _input(event):
